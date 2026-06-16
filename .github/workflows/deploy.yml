@@ -1,0 +1,56 @@
+name: Deploy to GitHub Pages
+
+# Build the Astro site and publish it to GitHub Pages. This REPLACES the legacy
+# Jekyll build, which failed on src/pages/index.astro's `---` frontmatter fences
+# because this repo is an Astro app, not a Jekyll site.
+#
+# ONE-TIME SETUP (required): in the repo, go to
+#   Settings → Pages → Build and deployment → Source → "GitHub Actions".
+# While Source is "Deploy from a branch", GitHub keeps running Jekyll and this
+# workflow's deployment step cannot publish.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least-privilege token plus the Pages + OIDC scopes the deploy step needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow a single concurrent Pages deployment; never cancel an in-flight publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Production base path for the project site (https://bigtoc.github.io/BTC-Dashboard/).
+    # astro.config.mjs reads ASTRO_BASE at build time; dev / astro check / the
+    # Playwright e2e suite leave it unset and build at root ('/').
+    env:
+      ASTRO_BASE: /BTC-Dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Installs deps (pnpm auto-detected from pnpm-lock.yaml + the pinned
+      # packageManager pnpm@9.15.4), runs `astro build`, and uploads dist/ as the
+      # Pages artifact. No Jekyll runs, so the `_astro/` output dir is preserved.
+      - name: Build with Astro
+        uses: withastro/action@v6
+        with:
+          node-version: '22.12'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
