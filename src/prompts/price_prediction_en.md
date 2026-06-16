@@ -101,29 +101,19 @@ Based on the current price, direction strength, and volatility (estimate from re
 - Neutral direction: the target may sit in a narrow range around the current price.
 
 ---
-## Output Format (strict JSON, no extra text)
+## Output Format
 
-```json
-{
-  "current_time": "(from snapshot current_time)",
-  "current_price": number,
-  "predictions": {
-    "5m": {
-      "direction": "Long/Short/Neutral",
-      "composite_score": -1.0 to 1.0,
-      "confidence": 0 to 1,
-      "predicted_price_usd": number,
-      "key_factors": [
-        { "name": "factor name", "bias": "bull/bear", "note": "brief" }
-      ],
-      "reasoning": "briefly list the main driving factors and the logic"
-    },
-    "15m": { ... },
-    "30m": { ... },
-    "1h": { ... },
-    "4h": { ... },
-    "1d": { ... }
-  },
-  "summary": "summarize in 1-2 sentences the most critical signals, cross-timeframe consistency, and overall bias"
-}
-```
+First give the current price and time on one line, then output a single Markdown table with one row per timeframe (order: 5m, 15m, 30m, 1h, 4h, 1d), followed by a 1-2 sentence overall summary. Do not output anything beyond the table and the summary.
+
+Current price: <from snapshot current_price> USD | Time: <from snapshot current_time>
+
+| Timeframe | Direction                    | Composite      | Confidence | Target Price (USD) | Key Drivers                                 |
+|-----------|------------------------------|----------------|------------|--------------------|---------------------------------------------|
+| 5m        | ▲ Long / ▼ Short / ● Neutral | -1.00 to +1.00 | 0-100%     | number             | 2-4 most important factors (mark bull/bear) |
+| 15m       | …                            | …              | …          | …                  | …                                           |
+| 30m       | …                            | …              | …          | …                  | …                                           |
+| 1h        | …                            | …              | …          | …                  | …                                           |
+| 4h        | …                            | …              | …          | …                  | …                                           |
+| 1d        | …                            | …              | …          | …                  | …                                           |
+
+**Summary:** 1-2 sentences on the most critical signals, cross-timeframe consistency, and overall bias.
