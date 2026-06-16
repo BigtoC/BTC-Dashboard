@@ -44,7 +44,7 @@ toolchain, swaps the data source, and adds bilingual support.
 
   Deribit options, Alternative.me Fear & Greed, CoinGecko dominance and
   mempool.space (fees + hashrate) are unchanged — they were already keyless.
-- **Bilingual 🇨🇳 / 🇬🇧 toggle.** Every string — including the dynamically
+- **Bilingual CN / EN toggle.** Every string — including the dynamically
   generated factor notes — is routed through an i18n layer. Click **EN / 中文**
   in the header; the choice persists in `localStorage`.
 - **API-key (paid) factors are built but inert.** ETF flows, DXY/yields,
