@@ -1,5 +1,6 @@
 ---
 import '../styles/dashboard.css';
+import favicon from '../lib/images/icon.png';
 // Default (no-JS) paint is Chinese, matching the original. The client script
 // (`app.ts`) hydrates the data and applies the persisted language on load.
 ---
@@ -9,6 +10,7 @@ import '../styles/dashboard.css';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href={favicon.src} />
     <title>BTC 多周期涨跌综合预判系统 · Binance</title>
     <meta
       name="description"
