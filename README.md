@@ -136,20 +136,6 @@ refreshed every 5 min, fail-soft):
 > exchange netflow have **no** free keyless source (Coin Metrics community
 > exposes only MVRV), so they remain paid stubs.
 
-### Not prediction inputs (for reference)
-
-These belong to the upstream Python project and are **not** part of the
-dashboard's signal — listed only for provenance:
-
-- `POST https://api.hyperliquid.xyz/info` `{"type":"allMids"}` → the Hyperliquid
-  execution/PnL price in the paper trader, not a signal input.
-- `GET https://gamma-api.polymarket.com/markets?slug=btc-updown-5m-<round_start>`
-  → the Polymarket round's Up/Down odds for PnL, not a BTC-price predictor.
-- The **backtest** (`data.py`, `btcls_backtest.py`) instead predicts from
-  Hyperliquid only: `POST https://api.hyperliquid.xyz/info` with
-  `{"type":"candleSnapshot"}` (klines) and `{"type":"fundingHistory"}`
-  (funding/crowd).
-
 ## Getting started
 
 ```bash
