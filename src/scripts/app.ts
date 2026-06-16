@@ -18,6 +18,7 @@ import {
   wsUrl,
 } from '../lib/binance';
 import { fetchExtras } from '../lib/extra-sources';
+import { buildLlmMessage } from '../lib/llm-export';
 import { render, STATE, fmtP } from '../lib/render';
 import { t, getLang, setLang, initLang, type Lang } from '../lib/i18n';
 
@@ -291,6 +292,38 @@ function applyChrome(): void {
   setStatus(statusState.on, statusState.key);
 }
 
+// ── LLM data export (Agent panel) ───────────────────────────────────────────
+async function copyLlmExport(): Promise<void> {
+  const status = $('exportStatus');
+  let ok = false;
+  try {
+    const msg = buildLlmMessage(buildD());
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(msg);
+      ok = true;
+    } else {
+      // Fallback for non-secure contexts: transient off-DOM textarea.
+      const ta = document.createElement('textarea');
+      ta.value = msg;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  } catch {
+    ok = false;
+  }
+  if (status) {
+    status.textContent = t(ok ? 'agent.copied' : 'agent.copyFail');
+    status.style.color = ok ? 'var(--long)' : 'var(--short)';
+    setTimeout(() => {
+      status.textContent = '';
+    }, 2500);
+  }
+}
+
 function toggleLang(): void {
   const next: Lang = getLang() === 'zh' ? 'en' : 'zh';
   setLang(next);
@@ -317,6 +350,7 @@ function start(): void {
     if (!wsAlive) connectWS();
   });
   $('langBtn')?.addEventListener('click', toggleLang);
+  $('exportBtn')?.addEventListener('click', () => void copyLlmExport());
 
   // render-if-dirty loop + pollers (match the original cadence)
   setInterval(() => {

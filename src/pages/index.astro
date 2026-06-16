@@ -70,16 +70,31 @@ import favicon from '../lib/images/icon.png';
           </div>
           <div id="breakdown"><div class="loading" data-i18n="chrome.selectTf">选择一个周期…</div></div>
         </div>
-        <div class="panel">
-          <h3 data-i18n="chrome.globalTitle">全局市场状态</h3>
-          <div class="sub" data-i18n="chrome.globalSub">跨周期共享的衍生品、期权、情绪、链上与资金流读数。</div>
-          <div class="gauge" id="globalGauge"></div>
-          <div class="legend">
-            <span><i class="sw" style="background:var(--long)"></i><span data-i18n="chrome.legendLong">看多</span></span>
-            <span
-              ><i class="sw" style="background:var(--neutral)"></i><span data-i18n="chrome.legendNeutral">中性</span></span
-            >
-            <span><i class="sw" style="background:var(--short)"></i><span data-i18n="chrome.legendShort">看空</span></span>
+        <div class="panel-col">
+          <div class="panel">
+            <h3 data-i18n="chrome.globalTitle">全局市场状态</h3>
+            <div class="sub" data-i18n="chrome.globalSub">跨周期共享的衍生品、期权、情绪、链上与资金流读数。</div>
+            <div class="gauge" id="globalGauge"></div>
+            <div class="legend">
+              <span><i class="sw" style="background:var(--long)"></i><span data-i18n="chrome.legendLong">看多</span></span>
+              <span
+                ><i class="sw" style="background:var(--neutral)"></i
+                ><span data-i18n="chrome.legendNeutral">中性</span></span
+              >
+              <span><i class="sw" style="background:var(--short)"></i><span data-i18n="chrome.legendShort">看空</span></span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3 data-i18n="chrome.agentTitle">Agent</h3>
+            <div id="agentPanel">
+              <div class="sub" data-i18n="agent.sub">
+                一键复制「实时数据 + 分析提示词」，粘贴到任意 LLM 对话即可生成多周期预测。
+              </div>
+              <div class="agent-actions">
+                <button id="exportBtn" class="btn" type="button" data-i18n="agent.export">复制数据与提示词</button>
+                <span id="exportStatus" class="agent-status"></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

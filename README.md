@@ -78,6 +78,131 @@ that were effectively dead in the OKX build:
    “已接入 / connected”. This build extracts `.result` (`deribitArray` in
    `src/lib/binance.ts`), so all four options factors compute as intended.
 
+## Factors & scoring — every data point used to predict price
+
+The verdict for each timeframe is a weighted blend of **~37 data points across
+10 categories**. Most carry a directional score (−100 bearish … +100 bullish)
+and a confidence weight; a few are informational; the genuinely-paid ones render
+as stubs. The endpoint behind each one is in [Data sources](#data-sources-all-public-no-api-key).
+
+**Legend:** ✅ scored · ℹ️ info-only (shown, score 0) · 🔑 needs API key (stub) · ⚪ not in the keyless data set
+&nbsp;&nbsp;·&nbsp;&nbsp; *Conf.* = confidence weight within its category.
+
+### Per-timeframe factors
+
+Recomputed independently for **each** of the 6 timeframes (5m · 15m · 30m · 1h · 4h · 1d) from that timeframe's Binance klines.
+
+**📈 Technicals**
+
+| Factor    | Data point                                                  | Conf.        |
+|-----------|-------------------------------------------------------------|--------------|
+| `ema` ✅   | EMA 21 / 50 / 200 trend alignment (price vs EMAs, stacking) | 0.80         |
+| `macd` ✅  | MACD line vs zero + histogram momentum change               | 0.70         |
+| `rsi` ✅   | RSI(14): overbought/oversold extremes + trend momentum      | 0.45         |
+| `stoch` ✅ | Stochastic %K position in the 14-bar range                  | 0.35         |
+| `boll` ✅  | Bollinger-band position + squeeze (width) detection         | 0.20–0.30    |
+| `adx` ✅   | ADX trend strength + directional index (+DI vs −DI)         | ≤1.0 (∝ ADX) |
+| `obv` ✅   | On-Balance-Volume slope (volume-price confirmation)         | 0.50         |
+| `vwap` ✅  | Price deviation from 30-bar VWAP                            | 0.55         |
+
+**📐 Levels / Support & Resistance**
+
+| Factor  | Data point                                               | Conf. |
+|---------|----------------------------------------------------------|-------|
+| `sr` ✅  | Distance to 60-bar high/low, in ATR units                | 0.60  |
+| `fib` ✅ | Position within the recent range (Fibonacci retracement) | 0.45  |
+
+**🧭 Market Structure**
+
+| Factor  | Data point                                                       | Conf. |
+|---------|------------------------------------------------------------------|-------|
+| `ms` ✅  | Higher-highs/higher-lows vs lower-highs/lower-lows (BOS / CHoCH) | 0.70  |
+| `mom` ✅ | Net price momentum over the last 5 bars (ATR-normalized)         | 0.55  |
+
+**💹 Price & Volume Momentum**
+
+| Factor       | Data point                                                    | Conf. |
+|--------------|---------------------------------------------------------------|-------|
+| `takervol` ✅ | Current-bar taker-buy share (Binance `takerBuyBase` / volume) | 0.40  |
+| `volexp` ✅   | Volume vs 20-bar average × candle direction (expansion)       | 0.45  |
+
+### Global factors (shared across all timeframes)
+
+**⚙️ Derivatives / Options**
+
+| Factor      | Data point                                           | Source                      | Conf.                       |
+|-------------|------------------------------------------------------|-----------------------------|-----------------------------|
+| `funding` ✅ | Perp funding rate (contrarian: hot longs → bearish)  | premiumIndex                | 0.70                        |
+| `oi` ✅      | Open-interest Δ × price Δ, 4-quadrant rule           | openInterestHist + ticker   | 0.60                        |
+| `lsacct` ✅  | Retail long/short account ratio (contrarian)         | globalLongShortAccountRatio | 0.55                        |
+| `takerg` ✅  | Market taker buy/sell ratio (from 5m `takerBuyBase`) | klines                      | 0.50                        |
+| `pcr` ✅     | Options Put/Call ratio (open interest)               | Deribit                     | 0.50                        |
+| `skew` ✅    | Options 25Δ risk-reversal skew                       | Deribit                     | 0.50                        |
+| `lstop` ⚪   | Top-trader long/short ratio                          | —                           | dropped (no keyless source) |
+
+**🔍 Overlooked Angles**
+
+| Factor      | Data point                                        | Source       | Conf.     |
+|-------------|---------------------------------------------------|--------------|-----------|
+| `maxpain` ✅ | Options max-pain strike "gravity" vs spot         | Deribit      | 0.25–0.50 |
+| `obi` ✅     | Order-book bid/ask wall imbalance (top 50 levels) | depth        | 0.40      |
+| `crowd` ✅   | Leverage crowding / reflexivity (extreme funding) | premiumIndex | 0.20–0.50 |
+| `liqmap` 🔑 | Liquidation heatmap / magnet zones                | Coinglass    | —         |
+
+**🎭 Sentiment & Alt Data**
+
+| Factor    | Data point                                      | Source         | Conf.       |
+|-----------|-------------------------------------------------|----------------|-------------|
+| `fng` ✅   | Fear & Greed index (contrarian at extremes)     | alternative.me | 0.50        |
+| `ivol` ℹ️ | Options ATM implied volatility (regime context) | Deribit        | 0 (display) |
+
+**🏦 Flows & Macro**
+
+| Factor   | Data point                                                                | Source                    | Conf. |
+|----------|---------------------------------------------------------------------------|---------------------------|-------|
+| `dom` ✅  | BTC market-cap dominance, 24h change                                      | CoinGecko                 | 0.40  |
+| `dxy` ✅  | US Dollar Index proxy + US 10Y yield (risk-off when rising) — **keyless** | Frankfurter + US Treasury | 0.40  |
+| `etf` 🔑 | Spot BTC ETF net inflow (USD)                                             | SoSoValue / Farside       | —     |
+
+**⛓️ On-chain**
+
+| Factor       | Data point                                      | Source                  | Conf.          |
+|--------------|-------------------------------------------------|-------------------------|----------------|
+| `mvrv` ✅     | MVRV ratio — valuation top/bottom — **keyless** | Coin Metrics            | 0.40           |
+| `mempool` ℹ️ | Mempool fee congestion (demand proxy)           | mempool.space           | 0.30 (score 0) |
+| `hash` ℹ️    | Network hashrate (security/stability)           | mempool.space           | 0.25 (score 0) |
+| `sopr` 🔑    | SOPR / STH-SOPR profit-taking pressure          | Glassnode / CryptoQuant | —              |
+| `netflow` 🔑 | Exchange net inflow / outflow                   | Glassnode / CryptoQuant | —              |
+
+**📰 News / Event Watch**
+
+| Factor     | Data point                             | Source   | Conf. |
+|------------|----------------------------------------|----------|-------|
+| `macro` 🔑 | Macro calendar (CPI / FOMC / NFP)      | provider | —     |
+| `reg` 🔑   | Regulation / hacks / black-swan events | provider | —     |
+
+### How the data points combine into a prediction
+
+1. **Per category** — a confidence-weighted average of its *available* factors: `Σ(score·conf) / Σconf`. Info-only factors (`conf = 0`) are excluded; `🔑` stubs and `⚪` factors are excluded entirely.
+2. **Composite** — categories are blended by per-timeframe weight (table below), then sharpened: `composite = tanh(rawWeightedScore · 6)`, clamped to [−1, +1].
+3. **Confidence** — `0.55·|composite| + 0.30·agreement + 0.15·coverage`, where *agreement* is how aligned the active factors' signs are and *coverage* is the share of category weight that had data.
+4. **Direction** — `> +0.05` ⇒ **Long ▲**, `< −0.05` ⇒ **Short ▼**, else **Neutral ●**.
+
+**Category weights per timeframe** (the shorter the timeframe, the more technicals dominate; the longer, the more flows/on-chain matter):
+
+| Category       | 5m  | 15m | 30m | 1h  | 4h  | 1d  |
+|----------------|-----|-----|-----|-----|-----|-----|
+| Technicals     | 34% | 34% | 33% | 30% | 28% | 24% |
+| Levels         | 12% | 12% | 11% | 10% | 9%  | 8%  |
+| Structure      | 14% | 15% | 16% | 18% | 18% | 16% |
+| Price & Volume | 12% | 10% | 9%  | 7%  | 5%  | 4%  |
+| Derivatives    | 16% | 15% | 15% | 14% | 12% | 10% |
+| Sentiment      | 3%  | 4%  | 4%  | 6%  | 7%  | 9%  |
+| Flows & Macro  | 1%  | 2%  | 3%  | 5%  | 8%  | 12% |
+| On-chain       | 1%  | 2%  | 3%  | 5%  | 9%  | 13% |
+| Overlooked     | 6%  | 5%  | 5%  | 4%  | 3%  | 3%  |
+| News           | 1%  | 1%  | 1%  | 1%  | 1%  | 1%  |
+
 ## Data sources (all public, no API key)
 
 These are the public market-data endpoints that feed the **live** composite (the
