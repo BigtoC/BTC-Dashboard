@@ -1,0 +1,87 @@
+name: CI
+
+# Run on pushes to the default branch and on every pull request (so PRs from
+# feature/rebuild and other branches are validated before merge).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel any in-progress run for the same PR (or branch) when a new commit
+# arrives. Keying on head_ref groups a PR's runs together so superseded
+# commits are cancelled; falling back to github.ref covers push events.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # pnpm MUST be installed before setup-node so that `cache: 'pnpm'` can
+      # resolve the pnpm store path. No `version:` input here on purpose: the
+      # action reads the pinned `packageManager: pnpm@9.15.4` from package.json.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      # Astro 6 requires Node >=22.12.0; pin to the 22.12 line for a stable,
+      # reproducible floor that still satisfies that requirement.
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.12'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `astro check` runs `astro sync` automatically, so no separate sync step
+      # is needed; it generates .astro types before type-checking.
+      - name: Type-check
+        run: pnpm check
+
+      # Resolve the installed Playwright version so the browser-binary cache key
+      # is version-specific (binaries are tied to the Playwright version). Read
+      # it straight from the installed package manifest so the key never depends
+      # on the format of any CLI output.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -e "process.stdout.write(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # On a cache hit, browser binaries are restored but OS deps are not cached,
+      # so install only the system dependencies; on a miss, install both.
+      - name: Install Playwright (chromium)
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      # GitHub Actions sets CI=true automatically, which flips the CI branches in
+      # playwright.config.ts (retries, single worker, html reporter, no server
+      # reuse). The config's webServer auto-starts `pnpm dev` on :4321.
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      # Upload the HTML report and raw results only when the job fails, which is
+      # when they are actually useful for debugging.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

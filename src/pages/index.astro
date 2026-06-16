@@ -1,0 +1,80 @@
+---
+import '../styles/dashboard.css';
+import favicon from '../lib/images/icon.png';
+// Default (no-JS) paint is Chinese, matching the original. The client script
+// (`app.ts`) hydrates the data and applies the persisted language on load.
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href={favicon.src} />
+    <title>BTC 多周期涨跌综合预判系统 · Binance</title>
+    <meta
+      name="description"
+      content="BTC multi-timeframe up/down composite prediction dashboard, powered by Binance public market data."
+    />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <span data-i18n="chrome.brand">BTC 多周期涨跌综合预判系统</span>
+          <small data-i18n="chrome.subtitle"
+            >数据源:Binance(现货 + 永续)· 含 Deribit 期权 · 每秒实时 · 仅供研究,非投资建议</small
+          >
+        </div>
+        <div class="price-box">
+          <span class="price" id="price">--</span>
+          <span class="chg" id="chg">--</span>
+          <canvas id="spark" width="130" height="36"></canvas>
+        </div>
+        <div class="spacer"></div>
+        <div class="ctrl">
+          <span class="switch" id="liveSwitch"
+            ><span class="dot" id="liveDot"></span><span id="liveText">未连接</span></span
+          >
+          <span class="tick" id="updated">--:--:--</span>
+          <button class="btn" id="refreshBtn" data-i18n="chrome.refresh">⟳ 刷新</button>
+          <button class="btn lang" id="langBtn" data-i18n="chrome.langSwitch" aria-label="Toggle language">EN</button>
+        </div>
+      </header>
+      <div id="topErr"></div>
+      <div class="grid" id="tfGrid">
+        <div class="loading" data-i18n="chrome.loading" style="grid-column:1/-1">正在加载 Binance 实时数据…</div>
+      </div>
+      <div class="panels">
+        <div class="panel">
+          <h3>
+            <span data-i18n="chrome.breakdownTitle">判断依据 · 因子明细</span>
+            <span id="selTf" style="color:var(--accent)"></span>
+          </h3>
+          <div class="sub" data-i18n="chrome.breakdownSub">
+            点击上方任一周期卡片查看完整因子拆解。每个因子方向分 -100 看空 ~ +100 看多。
+          </div>
+          <div id="breakdown"><div class="loading" data-i18n="chrome.selectTf">选择一个周期…</div></div>
+        </div>
+        <div class="panel">
+          <h3 data-i18n="chrome.globalTitle">全局市场状态</h3>
+          <div class="sub" data-i18n="chrome.globalSub">跨周期共享的衍生品、期权、情绪、链上与资金流读数。</div>
+          <div class="gauge" id="globalGauge"></div>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--long)"></i><span data-i18n="chrome.legendLong">看多</span></span>
+            <span
+              ><i class="sw" style="background:var(--neutral)"></i><span data-i18n="chrome.legendNeutral">中性</span></span
+            >
+            <span><i class="sw" style="background:var(--short)"></i><span data-i18n="chrome.legendShort">看空</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="disclaimer" data-i18n-html="chrome.disclaimer">
+        <b>⚠ 风险与说明:</b> 数据源为 <b>Binance</b>(现货 + BTCUSDT 永续),叠加 <b>Deribit 期权</b>、Alternative.me、CoinGecko、mempool.space。趋势主导加权评分给出方向与置信度,<b>不构成投资建议</b>。引擎已“果断化”,价格逐笔实时跳动、判断每秒重算。期权因子已接入 <span class="pill ok">已接入</span>;标记 <span class="pill">需接入</span> 的为付费数据源(ETF/Glassnode/CryptoQuant/Coinglass/宏观),已预留接口、密钥留空不影响运行。部分海外源(Binance/Deribit/恐惧贪婪/CoinGecko)在部分地区可能不可达,会自动降级、不影响主评分。杠杆合约风险极高,务必自设止损与仓位管理。
+      </div>
+    </div>
+    <script>
+      import '../scripts/app.ts';
+    </script>
+  </body>
+</html>
