@@ -17,6 +17,7 @@ import {
   deribitArray,
   wsUrl,
 } from '../lib/binance';
+import { fetchExtras } from '../lib/extra-sources';
 import { render, STATE, fmtP } from '../lib/render';
 import { t, getLang, setLang, initLang, type Lang } from '../lib/i18n';
 
@@ -77,6 +78,8 @@ function buildD(): GlobalData {
     cg: g.cg ?? NO,
     memFee: g.memFee ?? NO,
     hashr: g.hashr ?? NO,
+    macro: g.macro ?? NO,
+    mvrv: g.mvrv ?? NO,
   };
 }
 
@@ -143,13 +146,15 @@ function showPrice(p: number, pct: number | null): void {
 
 // ── data lifecycle ──────────────────────────────────────────────────────────
 async function seed(): Promise<boolean> {
-  const D = await collectAll();
+  // Binance snapshot + the keyless macro/on-chain extras, in parallel.
+  const [D, extras] = await Promise.all([collectAll(), fetchExtras(new Date())]);
   const anyK = Object.values(D.klines).some((v) => v);
   if (anyK) TF_LIST.forEach((tf) => { if (D.klines[tf]) KLINES[tf] = D.klines[tf]; });
   GDATA = {
     ticker: D.ticker, premium: D.premium, oiNow: D.oiNow, oiHist: D.oiHist,
     lsAcct: D.lsAcct, lsTop: D.lsTop, taker: D.taker, depth: D.depth,
     fng: D.fng, cg: D.cg, memFee: D.memFee, hashr: D.hashr, deribit: D.deribit,
+    macro: extras.macro, mvrv: extras.mvrv,
   };
   if (KLINES['5m'] && SPARK.length < 5) {
     SPARK.length = 0;
@@ -194,6 +199,15 @@ async function pollGlobal(): Promise<void> {
   if (R.cg.ok) GDATA.cg = R.cg as GlobalData['cg'];
   if (R.memFee.ok) GDATA.memFee = R.memFee as GlobalData['memFee'];
   if (R.hashr.ok) GDATA.hashr = R.hashr as GlobalData['hashr'];
+  dirty = true;
+}
+
+/** Refresh the keyless macro (DXY/10Y) + on-chain (MVRV) extras. They are daily
+ *  data, so this runs on a slow cadence; failures degrade those factors only. */
+async function pollExtras(): Promise<void> {
+  const ex = await fetchExtras(new Date());
+  if (ex.macro.ok) GDATA.macro = ex.macro;
+  if (ex.mvrv.ok) GDATA.mvrv = ex.mvrv;
   dirty = true;
 }
 
@@ -333,6 +347,7 @@ function start(): void {
   void (async () => {
     const ok = await seed();
     setInterval(() => void pollGlobal(), 20000);
+    setInterval(() => void pollExtras(), 300000); // daily data — refresh every 5 min
     void pricePoll();
     if (ok) {
       connectWS();
