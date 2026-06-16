@@ -86,7 +86,7 @@ export async function fetchGlobalsRaw(): Promise<RawGlobals> {
 /** Normalize raw Binance/3rd-party responses into the engine's GlobalData shape.
  *  `klines5m` lets us derive the market taker buy/sell ratio (`takerg`) from the
  *  latest 5m bar's takerBuyBase, replacing OKX's taker-volume endpoint. */
-export function normGlobals(R: RawGlobals, klines5m: Candle[] | null): Omit<GlobalData, 'klines' | 'deribit' | 'fng' | 'cg' | 'memFee' | 'hashr'> {
+export function normGlobals(R: RawGlobals, klines5m: Candle[] | null): Omit<GlobalData, 'klines' | 'deribit' | 'fng' | 'cg' | 'memFee' | 'hashr' | 'macro' | 'mvrv'> {
   const no = { ok: false as const, e: 'n/a' };
 
   const ticker: Safe<TickerData> = R.ticker.ok
@@ -148,6 +148,7 @@ export async function collectAll(): Promise<GlobalData> {
   ]);
   const klines: Record<TF, Candle[] | null> = { '5m': c5, '15m': c15, '30m': c30, '1h': c1h, '4h': c4h, '1d': c1d };
   const g = normGlobals(R, c5);
+  const off = { ok: false as const, e: 'n/a' };
   return {
     klines,
     ...g,
@@ -156,6 +157,10 @@ export async function collectAll(): Promise<GlobalData> {
     cg: R.cg as GlobalData['cg'],
     memFee: R.memFee as GlobalData['memFee'],
     hashr: R.hashr as GlobalData['hashr'],
+    // Keyless extras are fetched separately (extra-sources.ts) and merged via
+    // GDATA at render time; seed them as unavailable here.
+    macro: off,
+    mvrv: off,
   };
 }
 

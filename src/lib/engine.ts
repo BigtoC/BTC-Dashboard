@@ -396,12 +396,29 @@ export function globalFactors(D: GlobalData): Record<Category, Factor[]> {
   if (D.hashr.ok && D.hashr.v.currentHashrate) {
     G.onchain.push(F('hash', t('f.hash.name'), 'onchain', 0, 0.25, (D.hashr.v.currentHashrate / 1e18).toFixed(0) + ' EH/s', t('f.hash.note')));
   }
+  // ── Keyless free sources (extra-sources.ts): real when reachable, else degrade ──
+  if (D.mvrv && D.mvrv.ok) {
+    const m = D.mvrv.v;
+    let sc: number;
+    if (m > 3.5) sc = -0.6;
+    else if (m < 1.0) sc = 0.6;
+    else sc = clamp((1.8 - m) * 0.5);
+    G.onchain.push(F('mvrv', t('f.mvrv.name'), 'onchain', sc, 0.4, m.toFixed(2), m > 3.5 ? t('f.mvrv.high') : m < 1.0 ? t('f.mvrv.low') : t('f.mvrv.mid')));
+  } else {
+    G.onchain.push(F('mvrv', t('f.mvrv.name'), 'onchain', 0, 0, t('val.unavail'), t('f.mvrv.unreach'), false));
+  }
   // ── Paid / API-key sources (stubbed: render as "needs API key", never break) ──
-  G.onchain.push(F('mvrv', t('f.mvrv.name'), 'onchain', 0, 0, t('val.needKey'), t('f.mvrv.note'), false));
   G.onchain.push(F('sopr', t('f.sopr.name'), 'onchain', 0, 0, t('val.needKey'), t('f.sopr.note'), false));
   G.onchain.push(F('netflow', t('f.netflow.name'), 'onchain', 0, 0, t('val.needKey'), t('f.netflow.note'), false));
   G.flows.push(F('etf', t('f.etf.name'), 'flows', 0, 0, t('val.needKey'), t('f.etf.note'), false));
-  G.flows.push(F('dxy', t('f.dxy.name'), 'flows', 0, 0, t('val.needKey'), t('f.dxy.note'), false));
+  if (D.macro && D.macro.ok) {
+    const mc = D.macro.v;
+    const sc = clamp(-mc.dxyChg * 35 - (isNaN(mc.y10Chg) ? 0 : mc.y10Chg) * 0.8);
+    const y10txt = isNaN(mc.y10) ? 'n/a' : mc.y10.toFixed(2) + '%';
+    G.flows.push(F('dxy', t('f.dxy.name'), 'flows', sc, 0.4, mc.dxy.toFixed(1), t('f.dxy.real', { chg: (mc.dxyChg * 100 >= 0 ? '+' : '') + (mc.dxyChg * 100).toFixed(2), y: y10txt })));
+  } else {
+    G.flows.push(F('dxy', t('f.dxy.name'), 'flows', 0, 0, t('val.unavail'), t('f.dxy.unreach'), false));
+  }
   G.overlooked.push(F('liqmap', t('f.liqmap.name'), 'overlooked', 0, 0, t('val.needKey'), t('f.liqmap.note'), false));
   G.news.push(F('macro', t('f.macro.name'), 'news', 0, 0, t('val.needKey'), t('f.macro.note'), false));
   G.news.push(F('reg', t('f.reg.name'), 'news', 0, 0, t('val.needKey'), t('f.reg.note'), false));

@@ -65,6 +65,18 @@ export interface GlobalData {
   cg: Safe<{ data: { market_cap_percentage: { btc: number }; market_cap_change_percentage_24h_usd: number } }>;
   memFee: Safe<{ fastestFee: number }>;
   hashr: Safe<{ currentHashrate: number }>;
+  // Keyless macro (DXY proxy + 10Y yield) and on-chain (MVRV) — see extra-sources.ts.
+  macro: Safe<MacroData>;
+  mvrv: Safe<number>;
+}
+
+/** DXY proxy + US 10Y yield, with their ~5-business-day change. `y10` is NaN
+ *  when the Treasury feed is unreachable (DXY still scores on its own). */
+export interface MacroData {
+  dxy: number;
+  dxyChg: number; // fractional change over the lookback window
+  y10: number;
+  y10Chg: number; // change in percentage points over the lookback window
 }
 
 export interface DeribitOption {

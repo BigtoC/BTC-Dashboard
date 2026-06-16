@@ -1,17 +1,17 @@
-// Premium / API-key data sources.
+// Premium / API-key data sources — the factors with NO free keyless path.
 //
-// The original dashboard listed several factors that require a paid API key:
-//   • ETF net inflow            (flows)   — e.g. SoSoValue / Farside
-//   • DXY / Treasury yields     (flows)   — e.g. FRED
-//   • MVRV, SOPR, exchange flow (onchain) — Glassnode / CryptoQuant
-//   • Liquidation heatmap       (overlooked) — Coinglass
-//   • Macro calendar, regulation(news)    — provider-specific
+// After the keyless migration (see extra-sources.ts: DXY/10Y via US Treasury +
+// Frankfurter, MVRV via Coin Metrics), these four remain genuinely paid or
+// proxy-only and stay inert stubs until a key is supplied:
+//   • ETF net inflow            (flows)      — SoSoValue / Farside (no keyless+CORS path)
+//   • SOPR / STH-SOPR           (onchain)    — Glassnode/CryptoQuant; Coin Metrics community has no SOPR
+//   • Exchange net in/outflow   (onchain)    — Glassnode/CryptoQuant (no keyless source found)
+//   • Liquidation heatmap       (overlooked) — Coinglass (paid plan only)
 //
 // They are *built* here (real fetchers + a key config) but kept inert: with the
 // key left "" each fetcher short-circuits to `null`, so the engine keeps showing
 // them as "needs API key" stubs and the dashboard never breaks. Supply a key in
-// `config.ts` / PUBLIC_* env and wire the returned value into `globalFactors`
-// to light one up.
+// `config.ts` / PUBLIC_* env and wire the returned value into `globalFactors`.
 import { API_KEYS } from './config';
 import { safe, jget } from './binance';
 
@@ -28,15 +28,9 @@ export async function fetchEtfNetflow(): Promise<number | null> {
   return null;
 }
 
-/** DXY level / 10y yield via FRED. Returns null when no key is configured. */
-export async function fetchMacroDxy(): Promise<number | null> {
-  if (!API_KEYS.fred) return null;
-  // const r = await safe(jget(`https://api.stlouisfed.org/fred/series/observations?series_id=DTWEXBGS&api_key=${API_KEYS.fred}&file_type=json`));
-  return null;
-}
-
-/** Glassnode/CryptoQuant on-chain valuation (MVRV / SOPR / netflow). */
-export async function fetchOnchainValuation(metric: 'mvrv' | 'sopr' | 'netflow'): Promise<number | null> {
+/** SOPR / exchange-netflow via Glassnode/CryptoQuant (no free keyless source).
+ *  Returns null when no key is configured. */
+export async function fetchOnchainValuation(metric: 'sopr' | 'netflow'): Promise<number | null> {
   const key = API_KEYS.glassnode || API_KEYS.cryptoquant;
   if (!key) return null;
   void metric;
