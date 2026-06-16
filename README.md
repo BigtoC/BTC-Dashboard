@@ -47,11 +47,16 @@ toolchain, swaps the data source, and adds bilingual support.
 - **Bilingual CN / EN toggle.** Every string — including the dynamically
   generated factor notes — is routed through an i18n layer. Click **EN / 中文**
   in the header; the choice persists in `localStorage`.
-- **API-key (paid) factors are built but inert.** ETF flows, DXY/yields,
-  Glassnode/CryptoQuant on-chain (MVRV/SOPR/netflow), and Coinglass liquidation
-  maps are scaffolded in [`src/lib/paid-sources.ts`](src/lib/paid-sources.ts)
-  with an empty-by-default key config. With keys blank they render as
-  **“needs API key”** stubs and never break the app — see [`.env.example`](.env.example).
+- **Two formerly-paid factors are now keyless.** `dxy` (DXY proxy + US 10Y
+  yield) and `mvrv` are computed from free, keyless, CORS-enabled feeds — see
+  [Keyless macro & on-chain factors](#keyless-macro--on-chain-factors) and
+  [`src/lib/extra-sources.ts`](src/lib/extra-sources.ts).
+- **The remaining API-key (paid) factors are built but inert.** Spot ETF net
+  inflow, SOPR, exchange netflow, and the Coinglass liquidation heatmap have no
+  free keyless path, so they are scaffolded in
+  [`src/lib/paid-sources.ts`](src/lib/paid-sources.ts) with an empty-by-default
+  key config. With keys blank they render as **“needs API key”** stubs and never
+  break the app — see [`.env.example`](.env.example).
 
 ### Two improvements that fell out of the migration
 
@@ -99,11 +104,11 @@ assembled in `live_data.py` and consumed by `btcls_paper.py` /
 
 ### Notes
 
-- **No API key**: all endpoints are public read-only market data. A key would
-  only be needed for real trading (account/order endpoints), which this project
-  never calls. Premium factors that *do* need a key (ETF / Glassnode /
-  CryptoQuant / Coinglass / macro) are stubbed — see
-  [API-key (paid) factors](#what-changed-vs-the-original) above.
+- **No API key**: all endpoints above are public read-only market data. The
+  factors with no free keyless path (spot ETF inflow, SOPR, exchange netflow,
+  Coinglass liquidations, macro calendar, news) are stubbed — see
+  [API-key (paid) factors](#what-changed-vs-the-original) above. `dxy` and `mvrv`
+  used to be in that paid set but are now keyless (next subsection).
 - **Klines drive the bulk of the signal**; the rest are the snapshot/derivative
   factors that a price-only backtest can't test (and that the live recorder
   accrues forward).
@@ -112,8 +117,24 @@ assembled in `live_data.py` and consumed by `btcls_paper.py` /
   degrades (factors drop) — it does not crash. Likewise Deribit / Fear & Greed /
   CoinGecko may be unreachable in some regions and degrade gracefully.
 - **Polling**: the dashboard polls a handful of calls per cycle (1s price ticker,
-  12s kline refresh, 20s globals), well within Binance's IP rate limits, plus a
-  live `@trade` / `@ticker` WebSocket.
+  12s kline refresh, 20s globals, 5-min macro/on-chain extras), well within rate
+  limits, plus a live `@trade` / `@ticker` WebSocket.
+
+### Keyless macro & on-chain factors
+
+Two factors the original gated behind paid keys are now sourced from free,
+keyless, CORS-enabled feeds (fetched in [`src/lib/extra-sources.ts`](src/lib/extra-sources.ts),
+refreshed every 5 min, fail-soft):
+
+| Factor               | Source (keyless, CORS *)              | Endpoint                                                                                                                                                             |
+|----------------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `dxy` — DXY proxy    | Frankfurter (ECB FX, no quotas)       | `GET https://api.frankfurter.dev/v1/{start}..{end}?base=USD&symbols=EUR,JPY,GBP,CAD,SEK,CHF` → ICE DXY formula computed client-side                                  |
+| `dxy` — US 10Y yield | US Treasury daily yield-curve XML     | `GET https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={year}` → `BC_10YEAR` |
+| `mvrv` — BTC MVRV    | Coin Metrics Community (`CapMVRVCur`) | `GET https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur&frequency=1d`                                                    |
+
+> ℹ️ Coin Metrics community data is **CC BY-NC 4.0** (non-commercial). SOPR and
+> exchange netflow have **no** free keyless source (Coin Metrics community
+> exposes only MVRV), so they remain paid stubs.
 
 ### Not prediction inputs (for reference)
 
@@ -155,7 +176,8 @@ deterministic fixtures, so it verifies the OKX→Binance migration and the engin
 - all 10 factor categories with factor rows;
 - Deribit options factors are wired in;
 - the global market-state gauge;
-- API-key (paid) factors render as stubs **without breaking** the app;
+- keyless `dxy` + `mvrv` render real values (not stubs);
+- the remaining API-key (paid) factors render as stubs **without breaking** the app;
 - no uncaught page errors during a live cycle;
 - the CN→EN toggle translates the entire UI with **zero Chinese leaks**, and the
   choice persists across reload.
@@ -178,7 +200,8 @@ src/
     render.ts            # DOM rendering
     i18n.ts              # CN/EN dictionary + t()
     config.ts            # endpoints + (empty) API-key config
-    paid-sources.ts      # scaffolding for premium/keyed factors
+    extra-sources.ts     # keyless DXY/10Y (Treasury+Frankfurter) + MVRV (Coin Metrics)
+    paid-sources.ts      # scaffolding for the remaining premium/keyed factors
     constants.ts         # timeframes, category weights, icons
     types.ts             # shared types
   styles/dashboard.css   # original styles, verbatim
