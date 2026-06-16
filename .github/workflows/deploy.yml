@@ -42,7 +42,7 @@ jobs:
       - name: Build with Astro
         uses: withastro/action@v6
         with:
-          node-version: '22.12'
+          node-version: '24'
 
   deploy:
     needs: build
