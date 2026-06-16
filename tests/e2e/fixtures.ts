@@ -100,6 +100,45 @@ function json(route: Route, body: unknown) {
   });
 }
 
+function xml(route: Route, body: string) {
+  return route.fulfill({
+    status: 200,
+    headers: { 'content-type': 'text/xml', 'access-control-allow-origin': '*' },
+    body,
+  });
+}
+
+// ── keyless macro / on-chain fixtures ────────────────────────────────────────
+const frankfurterRange = {
+  amount: 1.0,
+  base: 'USD',
+  start_date: '2026-06-06',
+  end_date: '2026-06-15',
+  rates: {
+    '2026-06-06': { EUR: 0.86, JPY: 159.0, GBP: 0.743, CAD: 1.39, SEK: 9.3, CHF: 0.79 },
+    '2026-06-15': { EUR: 0.86155, JPY: 160.19, GBP: 0.74509, CAD: 1.3981, SEK: 9.3887, CHF: 0.79366 },
+  },
+};
+
+const treasuryXml = `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns:m="http://x" xmlns:d="http://y">
+  <entry><content><m:properties>
+    <d:NEW_DATE m:type="Edm.DateTime">2026-06-08T00:00:00</d:NEW_DATE>
+    <d:BC_10YEAR m:type="Edm.Double">4.40</d:BC_10YEAR>
+  </m:properties></content></entry>
+  <entry><content><m:properties>
+    <d:NEW_DATE m:type="Edm.DateTime">2026-06-15T00:00:00</d:NEW_DATE>
+    <d:BC_10YEAR m:type="Edm.Double">4.47</d:BC_10YEAR>
+  </m:properties></content></entry>
+</feed>`;
+
+const coinMetricsMvrv = {
+  data: [
+    { asset: 'btc', time: '2026-06-14T00:00:00.000000000Z', CapMVRVCur: '1.2276' },
+    { asset: 'btc', time: '2026-06-15T00:00:00.000000000Z', CapMVRVCur: '1.2394' },
+  ],
+};
+
 /** Register every market-data route + a mock Binance WebSocket. Call before goto. */
 export async function setupMocks(page: Page): Promise<void> {
   const klines = genKlines();
@@ -114,6 +153,10 @@ export async function setupMocks(page: Page): Promise<void> {
   await page.route('**/coingecko.com/**', (r) => json(r, coingecko));
   await page.route('**/mempool.space/api/v1/fees/**', (r) => json(r, mempoolFee));
   await page.route('**/mempool.space/api/v1/mining/**', (r) => json(r, mempoolHash));
+  // keyless macro / on-chain extras
+  await page.route('**/frankfurter.dev/**', (r) => json(r, frankfurterRange));
+  await page.route('**/home.treasury.gov/**', (r) => xml(r, treasuryXml));
+  await page.route('**/coinmetrics.io/**', (r) => json(r, coinMetricsMvrv));
 
   // Mock the Binance WS so no real connection is attempted (no server connect ⇒
   // the client sees an open socket; the page already renders from the REST seed).
