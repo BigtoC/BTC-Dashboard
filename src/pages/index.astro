@@ -86,7 +86,15 @@ import favicon from '../lib/images/icon.png';
           </div>
           <div class="panel">
             <h3 data-i18n="chrome.agentTitle">Agent</h3>
-            <div id="agentPanel"></div>
+            <div id="agentPanel">
+              <div class="sub" data-i18n="agent.sub">
+                一键复制「实时数据 + 分析提示词」，粘贴到任意 LLM 对话即可生成多周期预测。
+              </div>
+              <div class="agent-actions">
+                <button id="exportBtn" class="btn" type="button" data-i18n="agent.export">复制数据与提示词</button>
+                <span id="exportStatus" class="agent-status"></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
