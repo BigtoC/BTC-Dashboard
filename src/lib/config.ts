@@ -1,12 +1,12 @@
 // Endpoints and credentials configuration.
 //
 // All market-data endpoints below are PUBLIC and KEYLESS (see the "Data sources"
-// table in README.md).
-// The `API_KEYS` block is intentionally empty: the original dashboard surfaced
-// several premium factors (ETF flows, Glassnode/CryptoQuant on-chain, Coinglass
-// liquidation maps, macro). Those are *built* (see `paid-sources.ts`) but stay
-// inert while their key is "" — they render as "needs API key" and never break
-// the app. Drop a key in here (or via PUBLIC_* env at build time) to enable one.
+// table in README.md). DXY/Treasury yields and MVRV are now sourced keyless too
+// (US Treasury XML, Frankfurter, Coin Metrics Community — see extra-sources.ts).
+// The `API_KEYS` block stays empty for the factors with NO free keyless path
+// (ETF flows, SOPR/exchange-flow, liquidation heatmap): those are *built* (see
+// `paid-sources.ts`) but inert while their key is "" — they render as "needs API
+// key" and never break the app. Drop a key here (or via PUBLIC_* env) to enable.
 
 export const SYMBOL = 'BTCUSDT';
 
@@ -26,14 +26,24 @@ export const COINGECKO_GLOBAL_URL = 'https://api.coingecko.com/api/v3/global';
 export const MEMPOOL_FEE_URL = 'https://mempool.space/api/v1/fees/recommended';
 export const MEMPOOL_HASHRATE_URL = 'https://mempool.space/api/v1/mining/hashrate/1m';
 
-/** Premium data sources — keys deliberately blank. Empty ⇒ feature stays a
- *  "needs API key" stub and the app keeps working. */
+// ── Free, keyless + CORS macro / on-chain sources (see extra-sources.ts) ──────
+// US Treasury daily yield-curve XML (10Y). Keyless, Access-Control-Allow-Origin: *.
+export const treasuryYieldUrl = (year: number): string =>
+  `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=${year}`;
+// Frankfurter (ECB FX). Keyless, no quotas, CORS *. Base for the DXY proxy.
+export const FRANKFURTER_BASE = 'https://api.frankfurter.dev/v1';
+// Coin Metrics Community API (BTC MVRV). Keyless, CORS *. CC BY-NC 4.0.
+export const COINMETRICS_COMMUNITY = 'https://community-api.coinmetrics.io/v4';
+
+/** Premium data sources still requiring a paid/registered key — deliberately
+ *  blank. Empty ⇒ that factor stays a "needs API key" stub and the app keeps
+ *  working. (DXY/yields and MVRV are no longer here: they are now sourced from
+ *  the keyless feeds above.) */
 export interface ApiKeys {
-  glassnode: string;
-  cryptoquant: string;
-  coinglass: string;
-  etf: string; // e.g. a SoSoValue / Farside provider key
-  fred: string; // macro (DXY / yields) via FRED
+  glassnode: string; // SOPR / exchange-flow (no keyless source found)
+  cryptoquant: string; // SOPR / exchange-flow alternative
+  coinglass: string; // liquidation heatmap
+  etf: string; // spot ETF net inflow (SoSoValue / Farside-type provider)
 }
 
 export const API_KEYS: ApiKeys = {
@@ -41,7 +51,6 @@ export const API_KEYS: ApiKeys = {
   cryptoquant: readEnv('PUBLIC_CRYPTOQUANT_KEY'),
   coinglass: readEnv('PUBLIC_COINGLASS_KEY'),
   etf: readEnv('PUBLIC_ETF_KEY'),
-  fred: readEnv('PUBLIC_FRED_KEY'),
 };
 
 function readEnv(name: string): string {

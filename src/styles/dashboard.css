@@ -80,3 +80,5 @@ header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding
 .g-item .gd { font-size: 11px; margin-top: 2px; }
 .loading { text-align: center; color: var(--muted); padding: 40px; }
 .btn.lang { font-weight: 600; min-width: 48px; }
+.btn.gh { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.btn.gh svg { display: block; }

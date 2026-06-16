@@ -55,11 +55,28 @@ test('global gauge renders multiple live readings', async ({ page }) => {
 test('API-key (paid) factors render as stubs without breaking the app', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#breakdown .cat')).toHaveCount(10); // wait for breakdown
-  // 8 paid stubs: mvrv, sopr, netflow, etf, dxy, liqmap, macro, reg.
-  await expect(page.locator('#breakdown .factor.na')).toHaveCount(8);
-  await expect(page.locator('#breakdown .pill', { hasText: '需接入' })).toHaveCount(8);
+  // 6 paid stubs remain: sopr, netflow, etf, liqmap, macro, reg.
+  // (dxy + mvrv are now sourced keyless — see next test.)
+  await expect(page.locator('#breakdown .factor.na')).toHaveCount(6);
+  await expect(page.locator('#breakdown .pill', { hasText: '需接入' })).toHaveCount(6);
   // The app still produced six healthy cards alongside the stubs.
   await expect(page.locator('.tf-card')).toHaveCount(6);
+});
+
+test('keyless free sources (DXY + MVRV) render real values, not stubs', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#breakdown .cat')).toHaveCount(10);
+  // MVRV (Coin Metrics) renders a real value and is NOT a "needs API key" stub.
+  const mvrv = page.locator('#breakdown .factor', { hasText: 'MVRV' });
+  await expect(mvrv).toHaveCount(1);
+  await expect(mvrv).not.toHaveClass(/\bna\b/);
+  await expect(mvrv.locator('.fv')).toHaveText('1.24');
+  // DXY (Treasury + Frankfurter) renders a real index value and is not a stub.
+  const dxy = page.locator('#breakdown .factor', { hasText: '美元指数' });
+  await expect(dxy).toHaveCount(1);
+  await expect(dxy).not.toHaveClass(/\bna\b/);
+  await expect(dxy.locator('.fv')).not.toHaveText('需接入');
+  await expect(dxy.locator('.fn small')).toContainText('DXY');
 });
 
 test('no uncaught page errors during a live cycle', async ({ page }) => {
@@ -90,7 +107,7 @@ test('CN→EN toggle translates the entire UI with no Chinese leaks', async ({ p
   }
   // English factor wording is present; paid stubs now read "API key".
   await expect(page.locator('#breakdown')).toContainText('EMA Trend Alignment');
-  await expect(page.locator('#breakdown .pill', { hasText: 'API key' })).toHaveCount(8);
+  await expect(page.locator('#breakdown .pill', { hasText: 'API key' })).toHaveCount(6);
 });
 
 test('language choice persists across reload', async ({ page }) => {
